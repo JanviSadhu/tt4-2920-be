@@ -1,10 +1,20 @@
 const mongoose = require('mongoose');
 
 const connectDB = async () => {
-    const mongoUri = process.env.MONGO_URI ?? "mongodb+srv://sadhujanvi909_db_user:84mFbHwt4dcVpbtk@cluster0.sbskgt4.mongodb.net/?appName=Cluster0";
-    await mongoose.connect(mongoUri);
+  try {
+    const uri = process.env.MONGODB_URI;
 
-    console.log("MongoDB connected successfully!");
+    if (!uri) {
+      throw new Error("MONGODB_URI is undefined ");
+    }
+
+    await mongoose.connect(uri);
+
+    console.log("MongoDB Connected ");
+  } catch (error) {
+    console.error("DB ERROR:", error.message);
+    process.exit(1);
+  }
 };
 
 module.exports = { connectDB };

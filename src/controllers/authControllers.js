@@ -1,6 +1,20 @@
-const User = require("../models/user");
-const bcrypt = require("bcryptjs");
+const User = require("../models/User");
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+
+const generateToken = (id, email) => {
+    const jwtSecret = "iajsida3003";
+
+    return jwt.sign({id, email}, jwtSecret, {expiresIn: "1d"});
+}
+
+const serializeUser = (user) => ({
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt
+});
 
 const register = async (req, res) => {
     try{
@@ -53,42 +67,34 @@ const register = async (req, res) => {
 };
 
 const login = async (req, res) => {
-    try {
+    try{
         const { email, password } = req.body;
 
-        // Validate input
-        if (!email || !password) {
+        if(!email || !password){
             return res.status(400).json({
                 message: "Email and Password are required!"
             });
         }
 
-        // Find user by email
-        const user = await User.findOne({ email: String(email).toLowerCase() });
+        const user = await User.findOne({email: String(email).toLowerCase()});
 
-        if (!user) {
+        if(!user){
             return res.status(401).json({
-                message: "Invalid email or password!"
+                message: "Invalid email or password"
             });
         }
 
-        // Compare passwords
         const isPasswordValid = await bcrypt.compare(password, user.password);
 
-        if (!isPasswordValid) {
+        if(!isPasswordValid){
             return res.status(401).json({
-                message: "Invalid email or password!"
+                message: "Invalid email or password"
             });
         }
 
-        // Generate JWT token
-        const token = jwt.sign(
-            { id: user._id, email: user.email },
-            process.env.JWT_SECRET || "your-secret-key-change-this",
-            { expiresIn: "7d" }
-        );
+        const token = generateToken(String(user._id), user.email);
 
-        return res.status(200).json({
+        return res.json({
             message: "Login successful.",
             data: {
                 token,
@@ -101,12 +107,64 @@ const login = async (req, res) => {
                 }
             }
         });
-    } catch (error) {
+    }
+    catch(error){
         console.log(error);
         return res.status(500).json({
             message: "Error while logging in."
         });
     }
-};
+}
 
-module.exports = { register, login };
+const getMe = async (req, res) => {
+    try{
+        if(!req.user || !req.user.id){
+            return res.status(401).json({
+                message: "Unauthorized"
+            });
+        }
+
+        const user = await User.findById(req.user.id).select("-password");
+
+        if(!user){
+            return res.status(404).json({
+                message: "User not found."
+            });
+        }
+
+        return res.json({
+            message: "Authenticated user fecthed successfully.",
+            data: {
+                user
+            }
+        });
+    }
+    catch(error){
+        console.log(error);
+        return res.status(500).json({
+            message: "Error while fetching authenticated user."
+        });
+    }
+    
+}
+
+const listUsers = async (req, res) => {
+    if(!req.user || !req.user.id){
+        return res.status(401).json({
+            message: "Unauthorized"
+        });
+    }
+
+    const users = await User.find({_id: { $ne: req.user.id}})
+        .select("-password")
+        .sort({name: 1});
+
+    return res.json({
+        message: "Authenticated user fecthed successfully.",
+        data: {
+            users: users.map(serializeUser)
+        }
+    });
+}
+
+module.exports = { register, login, getMe, listUsers };

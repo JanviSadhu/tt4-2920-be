@@ -1,17 +1,25 @@
-const dotenv = require('dotenv');
+const path = require("path");
+const dotenv = require("dotenv");
 
-const app = require('./app');
-const { connectDB } = require('./config/db');
-//dotenv.config({path: path.resolve(__dirname, "../.env")});
-dotenv.config();
+// dotenv.config({path: path.resolve(__dirname, "../.env")})
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+
+const app = require("./app");
+const { connectDB } = require("./config/db");
+
+const PORT = process.env.PORT || 5000;
+
 const startServer = async () => {
-    try {
+    try{
+        console.log("ENV CHECK:", process.env.MONGODB_URI);
+
         await connectDB();
-        app.listen(5000, () => {
-            console.log('Server is running on port 5000.....');
+
+        app.listen(PORT, ()=>{
+            console.log("Server is running...");
         });
-    } catch (error) {
-        console.log("Failed to start the server", error);
+    } catch(error){
+        console.log("Failed to start server: ", error);
         process.exit(1);
     }
 };
